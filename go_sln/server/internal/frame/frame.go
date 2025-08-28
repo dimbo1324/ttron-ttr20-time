@@ -3,68 +3,77 @@ package frame
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 )
 
 func ExtractFrame(buf *bytes.Buffer) ([]byte, bool) {
 	b := buf.Bytes()
+
 	start := bytes.IndexByte(b, 0x68)
 	if start < 0 {
 		return nil, false
 	}
-	if len(b) <= start+2 {
+
+	if len(b) < start+3 {
 		return nil, false
 	}
+
 	if b[start+2] != 0x68 {
 		buf.Next(start + 1)
 		return nil, false
 	}
+
 	lenByte := int(b[start+1])
-	minEnd := start + 3 + lenByte + 1 + 1
-	if len(b) < minEnd {
+	if lenByte < 0 {
+		buf.Next(start + 1)
 		return nil, false
 	}
-	endIdx1 := start + 3 + lenByte + 1
-	if endIdx1 < len(b) && b[endIdx1+1] == 0x16 {
-		frame := make([]byte, endIdx1-start+2)
-		copy(frame, b[start:endIdx1+2])
-		buf.Next(endIdx1 + 2)
+
+	payloadStart := start + 3
+	payloadEnd := payloadStart + lenByte
+
+	if len(b) < payloadEnd+2 {
+		return nil, false
+	}
+
+	endIdx1 := payloadEnd + 1
+	if endIdx1 < len(b) && b[endIdx1] == 0x16 {
+		frame := make([]byte, endIdx1-start+1)
+		copy(frame, b[start:endIdx1+1])
+		buf.Next(endIdx1 + 1)
 		return frame, true
 	}
-	endIdx2 := start + 3 + lenByte + 2
-	if endIdx2 < len(b) && b[endIdx2+1] == 0x16 {
-		frame := make([]byte, endIdx2-start+2)
-		copy(frame, b[start:endIdx2+2])
-		buf.Next(endIdx2 + 2)
+
+	endIdx2 := payloadEnd + 2
+	if endIdx2 < len(b) && b[endIdx2] == 0x16 {
+		frame := make([]byte, endIdx2-start+1)
+		copy(frame, b[start:endIdx2+1])
+		buf.Next(endIdx2 + 1)
 		return frame, true
 	}
+
 	return nil, false
 }
 
 func PayloadData(frame []byte) []byte {
-	if len(frame) <= 5 {
+	if len(frame) < 7 {
 		return nil
 	}
 	lenByte := int(frame[1])
 	if lenByte < 2 {
 		return nil
 	}
-	dataLen := lenByte - 2
-	dataStart := 5
-	if dataStart+dataLen > len(frame)-3 {
-		if dataStart >= len(frame)-3 {
-			return nil
-		}
-		return frame[dataStart : len(frame)-3]
-	}
-	return frame[dataStart : dataStart+dataLen]
-}
+	payloadStart := 3
+	payloadEnd := payloadStart + lenByte
 
-func ControlAddrFromFrame(frame []byte) (control byte, addr byte, err error) {
-	if len(frame) < 6 {
-		return 0, 0, fmt.Errorf("frame too short")
+	if payloadEnd > len(frame)-2 {
+		return nil
 	}
-	return frame[3], frame[4], nil
+
+	dataStart := payloadStart + 2
+	if dataStart > payloadEnd {
+		return nil
+	}
+	return frame[dataStart:payloadEnd]
 }
 
 func BuildSkeleton(control byte, addr byte, data []byte) []byte {

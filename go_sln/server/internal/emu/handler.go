@@ -5,6 +5,7 @@ import (
 	"log"
 	"math/rand"
 	"net"
+	"runtime/debug"
 	"time"
 
 	"sln/internal/config"
@@ -15,13 +16,19 @@ import (
 
 func handleConnection(conn net.Conn, cfg *config.Config, logger *log.Logger) {
 	defer func() {
-		logger.Printf("[%s] closing connection", conn.RemoteAddr())
-		conn.Close()
+		if r := recover(); r != nil {
+			logger.Printf("[%s] PANIC recovered: %v\n%s", conn.RemoteAddr(), r, string(debug.Stack()))
+			_ = conn.Close()
+		}
+	}()
+
+	defer func() {
+		_ = conn.Close()
+		logger.Printf("[%s] connection handler finished", conn.RemoteAddr())
 	}()
 
 	var buf bytes.Buffer
 	tmp := make([]byte, 4096)
-
 	readTimeout := time.Duration(cfg.ReadTimeout) * time.Second
 
 	for {
@@ -55,8 +62,7 @@ func handleConnection(conn net.Conn, cfg *config.Config, logger *log.Logger) {
 			control := frameBytes[3]
 			addr := frameBytes[4]
 			data := frame.PayloadData(frameBytes)
-
-			var cmd byte = 0
+			var cmd byte
 			if len(data) > 0 {
 				cmd = data[0]
 			}
