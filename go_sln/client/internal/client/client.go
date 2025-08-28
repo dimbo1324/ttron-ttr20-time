@@ -5,12 +5,11 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"sync"
-	"time"
-
 	"sln/client/internal/config"
 	"sln/client/internal/frame"
 	"sln/client/internal/util"
+	"sync"
+	"time"
 )
 
 type Client struct {

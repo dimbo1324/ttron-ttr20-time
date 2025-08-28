@@ -3,11 +3,10 @@ package main
 import (
 	"os"
 	"os/signal"
-	"syscall"
-
 	"sln/client/internal/client"
 	"sln/client/internal/config"
 	"sln/client/internal/logging"
+	"syscall"
 )
 
 func main() {

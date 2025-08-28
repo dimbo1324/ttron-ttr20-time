@@ -6,12 +6,11 @@ import (
 	"math/rand"
 	"net"
 	"runtime/debug"
-	"time"
-
 	"sln/internal/config"
 	"sln/internal/emulator"
 	"sln/internal/frame"
 	"sln/internal/util"
+	"time"
 )
 
 func handleConnection(conn net.Conn, cfg *config.Config, logger *log.Logger) {

@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"sync"
-
 	"sln/internal/config"
+	"sync"
 )
 
 type Server struct {

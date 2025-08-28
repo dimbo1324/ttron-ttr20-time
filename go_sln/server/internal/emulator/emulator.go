@@ -2,9 +2,8 @@ package emulator
 
 import (
 	"encoding/binary"
-	"time"
-
 	"sln/internal/frame"
+	"time"
 )
 
 func BuildTimeResponse(reqCtrl byte, reqAddr byte, reqData []byte, crcMode string, adapterAddr byte) []byte {
