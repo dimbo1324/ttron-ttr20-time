@@ -2,6 +2,7 @@ package util
 
 import "fmt"
 
+// HexDump возвращает компактный hex-дамп (строкой) для лого
 func HexDump(b []byte) string {
 	if len(b) == 0 {
 		return ""

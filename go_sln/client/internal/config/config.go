@@ -2,6 +2,7 @@ package config
 
 import "flag"
 
+// Config хранит параметры запуска клиент
 type Config struct {
 	Host         string
 	Port         int
@@ -13,6 +14,7 @@ type Config struct {
 	PollEverySec int
 }
 
+// Load парсит флаги командной строки и возвращает конфи
 func Load() *Config {
 	c := &Config{}
 	flag.StringVar(&c.Host, "host", "127.0.0.1", "server host")

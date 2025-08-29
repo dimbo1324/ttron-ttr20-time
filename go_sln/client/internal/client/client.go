@@ -12,6 +12,7 @@ import (
 	"time"
 )
 
+// Client отвечает за подключение к эмулятору и периодический опрос времен
 type Client struct {
 	cfg    *config.Config
 	logger *log.Logger
@@ -25,6 +26,7 @@ type Client struct {
 	dialLock sync.Mutex
 }
 
+// NewClient создаёт новый клиент с конфигом и логгеро
 func NewClient(cfg *config.Config, logger *log.Logger) *Client {
 	return &Client{
 		cfg:     cfg,
@@ -34,6 +36,7 @@ func NewClient(cfg *config.Config, logger *log.Logger) *Client {
 	}
 }
 
+// Start пытается подключиться и запускает цикл опроса (в фоне
 func (c *Client) Start() error {
 	_ = c.reconnect()
 
@@ -43,6 +46,7 @@ func (c *Client) Start() error {
 	return nil
 }
 
+// Stop корректно останавливает клиент: закрывает соединение и ждёт горути
 func (c *Client) Stop() {
 	c.mu.Lock()
 	if !c.running {
@@ -58,6 +62,7 @@ func (c *Client) Stop() {
 	c.wg.Wait()
 }
 
+// connect устанавливает TCP-соединение к сервер
 func (c *Client) connect() error {
 	c.dialLock.Lock()
 	defer c.dialLock.Unlock()
@@ -77,6 +82,7 @@ func (c *Client) connect() error {
 	return nil
 }
 
+// pollLoop — основной цикл, тикер каждую секунду; запускает опрос на секундах кратных
 func (c *Client) pollLoop() {
 	defer c.wg.Done()
 	ticker := time.NewTicker(time.Duration(c.cfg.PollEverySec) * time.Second)
@@ -103,6 +109,7 @@ func (c *Client) pollLoop() {
 	}
 }
 
+// performPoll формирует запрос, отправляет и обрабатывает ответ с retry/timeou
 func (c *Client) performPoll() {
 	if err := c.ensureConn(); err != nil {
 		c.logger.Printf("cannot connect: %v", err)
@@ -111,7 +118,7 @@ func (c *Client) performPoll() {
 
 	control := byte(0x00)
 	addr := byte(c.cfg.AdapterAddr & 0xFF)
-	data := []byte{0x01}
+	data := []byte{0x01} // команда чтения времени
 
 	req := frame.BuildSkeleton(control, addr, data)
 	req = frame.AppendChecksum(req, c.cfg.CRCMode)
@@ -140,6 +147,7 @@ func (c *Client) performPoll() {
 		}
 		c.logger.Printf("RX response: %s", util.HexDump(resp))
 
+		// Проверка контрольной суммы/структуры фрейм
 		if err := frame.VerifyFrame(resp); err != nil {
 			lastErr = err
 			c.logger.Printf("frame verification failed: %v", err)
@@ -157,6 +165,7 @@ func (c *Client) performPoll() {
 		timeStr := string(payload[1:])
 		ts, err := time.Parse("2006-01-02 15:04:05", timeStr)
 		if err != nil {
+			// Если парсинг не удаётся — логируем raw строк
 			c.logger.Printf("time parse failed, raw='%s'", timeStr)
 			c.logger.Printf("device time (raw): %s", timeStr)
 		} else {
@@ -167,6 +176,7 @@ func (c *Client) performPoll() {
 	c.logger.Printf("all retries failed: last error: %v", lastErr)
 }
 
+// write отправляет байты в текущее соединение (защищено мьютексом
 func (c *Client) write(b []byte) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -177,6 +187,7 @@ func (c *Client) write(b []byte) error {
 	return err
 }
 
+// readFrameWithTimeout читает данные из соединения до образования полного фрейма или таймаут
 func (c *Client) readFrameWithTimeout(timeout time.Duration) ([]byte, error) {
 	c.mu.Lock()
 	if c.conn == nil {
@@ -205,6 +216,7 @@ func (c *Client) readFrameWithTimeout(timeout time.Duration) ([]byte, error) {
 	}
 }
 
+// ensureConn убеждается, что есть открытое соединение, иначе пытается reconnec
 func (c *Client) ensureConn() error {
 	c.mu.Lock()
 	if c.conn != nil {
@@ -215,6 +227,7 @@ func (c *Client) ensureConn() error {
 	return c.reconnect()
 }
 
+// reconnect переподключается к серверу (с блокировкой, чтобы не было parallel dial
 func (c *Client) reconnect() error {
 	c.dialLog("reconnecting...")
 	c.mu.Lock()
@@ -237,6 +250,7 @@ func (c *Client) reconnect() error {
 	return nil
 }
 
+// dialLog — вспомогательный лог для событий подключени
 func (c *Client) dialLog(format string, args ...interface{}) {
 	c.logger.Printf("[dial] "+format, args...)
 }

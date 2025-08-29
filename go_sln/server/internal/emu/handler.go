@@ -13,10 +13,10 @@ import (
 	"time"
 )
 
-// handleConnection обслуживает одно TCP-соединение.
-// Защищён от паники, читает байты, собирает фреймы и отвечает.
+// handleConnection обслуживает одно TCP-соединени
+// Защищён от паники, читает байты, собирает фреймы и отвечае
 func handleConnection(conn net.Conn, cfg *config.Config, logger *log.Logger) {
-	// recover чтобы паника в обработчике не убивала весь сервер.
+	// recover чтобы паника в обработчике не убивала весь серве
 	defer func() {
 		if r := recover(); r != nil {
 			logger.Printf("[%s] PANIC recovered: %v\n%s", conn.RemoteAddr(), r, string(debug.Stack()))
@@ -24,7 +24,7 @@ func handleConnection(conn net.Conn, cfg *config.Config, logger *log.Logger) {
 		}
 	}()
 
-	// Закрываем соединение по выходу и логируем окончание хендлера.
+	// Закрываем соединение по выходу и логируем окончание хендлер
 	defer func() {
 		_ = conn.Close()
 		logger.Printf("[%s] connection handler finished", conn.RemoteAddr())
@@ -35,21 +35,21 @@ func handleConnection(conn net.Conn, cfg *config.Config, logger *log.Logger) {
 	readTimeout := time.Duration(cfg.ReadTimeout) * time.Second
 
 	for {
-		// Устанавливаем deadline для чтения.
+		// Устанавливаем deadline для чтени
 		_ = conn.SetReadDeadline(time.Now().Add(readTimeout))
 		n, err := conn.Read(tmp)
 		if err != nil {
-			// При ошибке чтения закрываем хендлер.
+			// При ошибке чтения закрываем хендле
 			logger.Printf("[%s] read error: %v", conn.RemoteAddr(), err)
 			return
 		}
 		if n == 0 {
 			continue
 		}
-		// Пишем полученные байты в буфер для парсинга фреймов.
+		// Пишем полученные байты в буфер для парсинга фреймо
 		buf.Write(tmp[:n])
 
-		// Пока есть полный фрейм - извлекаем и обрабатываем.
+		// Пока есть полный фрейм - извлекаем и обрабатывае
 		for {
 			frameBytes, ok := frame.ExtractFrame(&buf)
 			if !ok {
@@ -57,14 +57,14 @@ func handleConnection(conn net.Conn, cfg *config.Config, logger *log.Logger) {
 			}
 			logger.Printf("[%s] RX: %s", conn.RemoteAddr(), util.HexDump(frameBytes))
 
-			// Проверяем контрольную сумму/формат фрейма.
+			// Проверяем контрольную сумму/формат фрейм
 			if err := frame.VerifyFrame(frameBytes); err != nil {
 				logger.Printf("[%s] frame verification failed: %v", conn.RemoteAddr(), err)
-				// Игнорируем некорректный фрейм и ждём следующий.
+				// Игнорируем некорректный фрейм и ждём следующи
 				continue
 			}
 
-			// Базовый разбор: control, addr, data (если есть).
+			// Базовый разбор: control, addr, data (если есть
 			if len(frameBytes) < 6 {
 				logger.Printf("[%s] frame too short", conn.RemoteAddr())
 				continue
@@ -77,25 +77,25 @@ func handleConnection(conn net.Conn, cfg *config.Config, logger *log.Logger) {
 				cmd = data[0]
 			}
 
-			// Обработка известных команд.
+			// Обработка известных коман
 			switch cmd {
 			case 0x01:
-				// Команда чтения времени.
+				// Команда чтения времен
 				logger.Printf("[%s] read-time request (ctrl=0x%02X addr=0x%02X)", conn.RemoteAddr(), control, addr)
 				resp := emulator.BuildTimeResponse(control, addr, data, cfg.CRCMode, byte(cfg.AdapterAddr))
 
-				// Опциональня искусственная задержка для тестов.
+				// Опциональня искусственная задержка для тесто
 				if cfg.DelayMs > 0 {
 					time.Sleep(time.Duration(cfg.DelayMs) * time.Millisecond)
 				}
 
-				// Иногда инжектим плохой CRC (для тестирования).
+				// Иногда инжектим плохой CRC (для тестирования
 				if rand.Float64() < cfg.BadCRCProb {
 					logger.Printf("[%s] injecting bad CRC", conn.RemoteAddr())
 					frame.CorruptChecksum(resp, cfg.CRCMode)
 				}
 
-				// Иногда фрагментируем ответ на две части.
+				// Иногда фрагментируем ответ на две част
 				if rand.Float64() < cfg.FragProb && len(resp) > 1 {
 					i := len(resp) / 2
 					if i < 1 {
@@ -112,7 +112,7 @@ func handleConnection(conn net.Conn, cfg *config.Config, logger *log.Logger) {
 						return
 					}
 				} else {
-					// Отправляем полный ответ.
+					// Отправляем полный отве
 					if _, err := conn.Write(resp); err != nil {
 						logger.Printf("[%s] write error: %v", conn.RemoteAddr(), err)
 						return
@@ -120,7 +120,7 @@ func handleConnection(conn net.Conn, cfg *config.Config, logger *log.Logger) {
 				}
 				logger.Printf("[%s] TX: %s", conn.RemoteAddr(), util.HexDump(resp))
 			default:
-				// Для неизвестных команд отправляем ACK/echo.
+				// Для неизвестных команд отправляем ACK/ech
 				logger.Printf("[%s] generic/unknown cmd 0x%02X - sending ACK", conn.RemoteAddr(), cmd)
 				resp := emulator.BuildAckResponse(control, addr, data, cfg.CRCMode, byte(cfg.AdapterAddr))
 				if cfg.DelayMs > 0 {

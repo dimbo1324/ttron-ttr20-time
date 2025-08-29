@@ -9,6 +9,8 @@ import (
 	"syscall"
 )
 
+// Точка входа клиента. Загружает конфиг, запускает опрашивающий клиент
+// и организует корректную остановку по сигнал
 func main() {
 	cfg := config.Load()
 	logger := logging.New(cfg.LogFile)
@@ -18,6 +20,7 @@ func main() {
 
 	cl := client.NewClient(cfg, logger)
 
+	// Запускаем опрос в фоне
 	if err := cl.Start(); err != nil {
 		logger.Fatalf("client start failed: %v", err)
 	}

@@ -5,6 +5,8 @@ import (
 	"encoding/binary"
 )
 
+// ExtractFrame ищет и извлекает первый полный фрейм из буфер
+// Формат фрейма: 0x68 | LEN | 0x68 | CONTROL | ADDR | DATA... | CHECKSUM | 0x16
 func ExtractFrame(buf *bytes.Buffer) ([]byte, bool) {
 	b := buf.Bytes()
 	start := bytes.IndexByte(b, 0x68)
@@ -15,10 +17,12 @@ func ExtractFrame(buf *bytes.Buffer) ([]byte, bool) {
 		return nil, false
 	}
 	if b[start+2] != 0x68 {
+		// Сдвигаем буфер, чтобы не застрять на неверном байт
 		buf.Next(start + 1)
 		return nil, false
 	}
 	lenByte := int(b[start+1])
+	// минимальная полная длина с 1-байтной контрольной суммой
 	minEnd := start + 3 + lenByte + 1 + 1
 	if len(b) < minEnd {
 		return nil, false
@@ -30,6 +34,7 @@ func ExtractFrame(buf *bytes.Buffer) ([]byte, bool) {
 		buf.Next(endIdx1 + 2)
 		return frame, true
 	}
+	// пробуем вариант с 2-байтной CRC
 	endIdx2 := start + 3 + lenByte + 2
 	if endIdx2+1 < len(b) && b[endIdx2+1] == 0x16 {
 		frame := make([]byte, endIdx2-start+2)
@@ -40,6 +45,7 @@ func ExtractFrame(buf *bytes.Buffer) ([]byte, bool) {
 	return nil, false
 }
 
+// PayloadData возвращает DATA (без control и addr) из фрейм
 func PayloadData(frame []byte) []byte {
 	if len(frame) <= 5 {
 		return nil
@@ -59,6 +65,7 @@ func PayloadData(frame []byte) []byte {
 	return frame[dataStart : dataStart+dataLen]
 }
 
+// BuildSkeleton формирует начальную часть фрейма (без CRC и 0x16
 func BuildSkeleton(control byte, addr byte, data []byte) []byte {
 	lenByte := byte(2 + len(data))
 	var b bytes.Buffer
@@ -71,6 +78,7 @@ func BuildSkeleton(control byte, addr byte, data []byte) []byte {
 	return b.Bytes()
 }
 
+// AppendChecksum дописывает checksum (sum или crc16) и 0x1
 func AppendChecksum(frameSoFar []byte, crcMode string) []byte {
 	if crcMode == "crc16" {
 		crc := ComputeCRC16(frameSoFar[3:])
@@ -82,6 +90,7 @@ func AppendChecksum(frameSoFar []byte, crcMode string) []byte {
 	return append(frameSoFar, append([]byte{sum}, 0x16)...)
 }
 
+// VerifyFrame проверяет конец 0x16 и checksum (sum или crc16
 func VerifyFrame(frame []byte) error {
 	if len(frame) < 6 {
 		return ErrFrameTooShort
@@ -94,11 +103,13 @@ func VerifyFrame(frame []byte) error {
 	if payloadEnd > len(frame)-3 {
 		payloadEnd = len(frame) - 3
 	}
+	// try sum
 	if payloadEnd+1 < len(frame) {
 		if frame[payloadEnd] == ComputeSum(frame[payloadStart:payloadEnd]) {
 			return nil
 		}
 	}
+	// try crc16
 	if payloadEnd+2 < len(frame) {
 		got := binary.LittleEndian.Uint16(frame[payloadEnd : payloadEnd+2])
 		if got == ComputeCRC16(frame[payloadStart:payloadEnd]) {
@@ -108,6 +119,7 @@ func VerifyFrame(frame []byte) error {
 	return ErrChecksumMismatch
 }
 
+// CorruptChecksum ломает checksum для тест
 func CorruptChecksum(frame []byte, crcMode string) {
 	if crcMode == "crc16" {
 		if len(frame) >= 4 {
