@@ -5,8 +5,8 @@ import (
 	"os"
 )
 
-// New создаёт логге
-// Если path пуст, лог в stdout; иначе пишем в фай
+// New создаёт логгер
+// Если path пуст, лог в stdout; иначе пишем в файл
 func New(path string) *log.Logger {
 	if path == "" {
 		return log.New(os.Stdout, "", log.LstdFlags|log.Lmicroseconds)

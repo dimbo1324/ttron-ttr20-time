@@ -1,6 +1,6 @@
 package frame
 
-// ComputeSum считает простую сумму байт (mod 256
+// ComputeSum считает простую сумму байт (mod 256).
 func ComputeSum(b []byte) byte {
 	var s byte = 0
 	for _, v := range b {
@@ -9,7 +9,7 @@ func ComputeSum(b []byte) byte {
 	return s
 }
 
-// ComputeCRC16 считает CRC-16 (Modbus/IBM, poly 0xA001
+// ComputeCRC16 считает CRC-16 (Modbus/IBM, poly 0xA001).
 func ComputeCRC16(data []byte) uint16 {
 	var crc uint16 = 0xFFFF
 	for _, b := range data {

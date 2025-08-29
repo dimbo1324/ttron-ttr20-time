@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 )
 
-// ExtractFrame ищет и извлекает первый полный фрейм из буфер
+// ExtractFrame ищет и извлекает первый полный фрейм из буфера
 // Формат фрейма: 0x68 | LEN | 0x68 | CONTROL | ADDR | DATA... | CHECKSUM | 0x16
 func ExtractFrame(buf *bytes.Buffer) ([]byte, bool) {
 	b := buf.Bytes()
@@ -17,7 +17,7 @@ func ExtractFrame(buf *bytes.Buffer) ([]byte, bool) {
 		return nil, false
 	}
 	if b[start+2] != 0x68 {
-		// Сдвигаем буфер, чтобы не застрять на неверном байт
+		// Сдвигаем буфер, чтобы не застрять на неверном байте
 		buf.Next(start + 1)
 		return nil, false
 	}
@@ -45,7 +45,7 @@ func ExtractFrame(buf *bytes.Buffer) ([]byte, bool) {
 	return nil, false
 }
 
-// PayloadData возвращает DATA (без control и addr) из фрейм
+// PayloadData возвращает DATA (без control и addr) из фрейма
 func PayloadData(frame []byte) []byte {
 	if len(frame) <= 5 {
 		return nil
@@ -65,7 +65,7 @@ func PayloadData(frame []byte) []byte {
 	return frame[dataStart : dataStart+dataLen]
 }
 
-// BuildSkeleton формирует начальную часть фрейма (без CRC и 0x16
+// BuildSkeleton формирует начальную часть фрейма (без CRC и 0x16).
 func BuildSkeleton(control byte, addr byte, data []byte) []byte {
 	lenByte := byte(2 + len(data))
 	var b bytes.Buffer
@@ -78,7 +78,7 @@ func BuildSkeleton(control byte, addr byte, data []byte) []byte {
 	return b.Bytes()
 }
 
-// AppendChecksum дописывает checksum (sum или crc16) и 0x1
+// AppendChecksum дописывает checksum (sum или crc16) и 0x16
 func AppendChecksum(frameSoFar []byte, crcMode string) []byte {
 	if crcMode == "crc16" {
 		crc := ComputeCRC16(frameSoFar[3:])
@@ -90,7 +90,7 @@ func AppendChecksum(frameSoFar []byte, crcMode string) []byte {
 	return append(frameSoFar, append([]byte{sum}, 0x16)...)
 }
 
-// VerifyFrame проверяет конец 0x16 и checksum (sum или crc16
+// VerifyFrame проверяет конец 0x16 и checksum (sum или crc16).
 func VerifyFrame(frame []byte) error {
 	if len(frame) < 6 {
 		return ErrFrameTooShort
@@ -119,7 +119,7 @@ func VerifyFrame(frame []byte) error {
 	return ErrChecksumMismatch
 }
 
-// CorruptChecksum ломает checksum для тест
+// CorruptChecksum ломает checksum для теста
 func CorruptChecksum(frame []byte, crcMode string) {
 	if crcMode == "crc16" {
 		if len(frame) >= 4 {

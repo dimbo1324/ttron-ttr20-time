@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 )
 
-// ComputeSum считает простую сумму байт (mod 256
+// ComputeSum считает простую сумму байт (mod 256).
 func ComputeSum(b []byte) byte {
 	var s byte = 0
 	for _, x := range b {
@@ -13,7 +13,7 @@ func ComputeSum(b []byte) byte {
 	return s
 }
 
-// ComputeCRC16 считает CRC-16 (Modbus/IBM, poly 0xA001
+// ComputeCRC16 считает CRC-16 (Modbus/IBM, poly 0xA001).
 func ComputeCRC16(data []byte) uint16 {
 	var crc uint16 = 0xFFFF
 	for _, b := range data {
@@ -29,7 +29,7 @@ func ComputeCRC16(data []byte) uint16 {
 	return crc
 }
 
-// VerifyFrame проверяет контрольную сумму фрейма (sum или crc16
+// VerifyFrame проверяет контрольную сумму фрейма (sum или crc16).
 func VerifyFrame(frame []byte) error {
 	if len(frame) < 6 {
 		return ErrFrameTooShort
@@ -58,7 +58,7 @@ func VerifyFrame(frame []byte) error {
 	return ErrChecksumMismatch
 }
 
-// CorruptChecksum испортит байты контрольной суммы (для тестов
+// CorruptChecksum испортит байты контрольной суммы (для тестов).
 func CorruptChecksum(frame []byte, crcMode string) {
 	if crcMode == "crc16" {
 		if len(frame) >= 4 {

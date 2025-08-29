@@ -8,7 +8,7 @@ import (
 	"sync"
 )
 
-// Server представляет TCP-эмулято
+// Server представляет TCP-эмулятор
 type Server struct {
 	cfg    *config.Config
 	logger *log.Logger
@@ -19,7 +19,7 @@ type Server struct {
 	mu     sync.Mutex
 }
 
-// NewServer создаёт новый экземпляр сервера с конфигом и логгеро
+// NewServer создаёт новый экземпляр сервера с конфигом и логгером
 func NewServer(cfg *config.Config, logger *log.Logger) *Server {
 	return &Server{
 		cfg:    cfg,
@@ -28,8 +28,8 @@ func NewServer(cfg *config.Config, logger *log.Logger) *Server {
 	}
 }
 
-// Start запускает TCP-слушатель и принимает входящие подключени
-// Функция блокирует до Stop() или ошибк
+// Start запускает TCP-слушатель и принимает входящие подключения
+// Функция блокирует до Stop() или ошибки
 func (s *Server) Start() error {
 	addr := fmt.Sprintf("%s:%d", s.cfg.Host, s.cfg.Port)
 	ln, err := net.Listen("tcp", addr)
@@ -42,7 +42,7 @@ func (s *Server) Start() error {
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			// При закрытии сервера Accept вернёт ошибку; тогда корректно выходи
+			// При закрытии сервера Accept вернёт ошибку; тогда корректно выходим
 			select {
 			case <-s.close:
 				return nil
@@ -51,7 +51,7 @@ func (s *Server) Start() error {
 				continue
 			}
 		}
-		// Новое подключение - обрабатываем в отдельной горутин
+		// Новое подключение - обрабатываем в отдельной горутине
 		s.logger.Printf("accepted connection from %s", conn.RemoteAddr())
 		s.wg.Add(1)
 		go func(c net.Conn) {
@@ -61,7 +61,7 @@ func (s *Server) Start() error {
 	}
 }
 
-// Stop корректно останавливает сервер: закрывает listener и ждёт хендлер-горути
+// Stop корректно останавливает сервер: закрывает listener и ждёт хендлер-горутин
 func (s *Server) Stop() {
 	s.mu.Lock()
 	if s.closed {

@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-// Client отвечает за подключение к эмулятору и периодический опрос времен
+// Client отвечает за подключение к эмулятору и периодический опрос времени
 type Client struct {
 	cfg    *config.Config
 	logger *log.Logger
@@ -26,7 +26,7 @@ type Client struct {
 	dialLock sync.Mutex
 }
 
-// NewClient создаёт новый клиент с конфигом и логгеро
+// NewClient создаёт новый клиент с конфигом и логгером
 func NewClient(cfg *config.Config, logger *log.Logger) *Client {
 	return &Client{
 		cfg:     cfg,
@@ -36,7 +36,7 @@ func NewClient(cfg *config.Config, logger *log.Logger) *Client {
 	}
 }
 
-// Start пытается подключиться и запускает цикл опроса (в фоне
+// Start пытается подключиться и запускает цикл опроса (в фоне).
 func (c *Client) Start() error {
 	_ = c.reconnect()
 
@@ -46,7 +46,7 @@ func (c *Client) Start() error {
 	return nil
 }
 
-// Stop корректно останавливает клиент: закрывает соединение и ждёт горути
+// Stop корректно останавливает клиент: закрывает соединение и ждёт горутин
 func (c *Client) Stop() {
 	c.mu.Lock()
 	if !c.running {
@@ -62,7 +62,7 @@ func (c *Client) Stop() {
 	c.wg.Wait()
 }
 
-// connect устанавливает TCP-соединение к сервер
+// connect устанавливает TCP-соединение к серверу
 func (c *Client) connect() error {
 	c.dialLock.Lock()
 	defer c.dialLock.Unlock()
@@ -82,7 +82,7 @@ func (c *Client) connect() error {
 	return nil
 }
 
-// pollLoop — основной цикл, тикер каждую секунду; запускает опрос на секундах кратных
+// pollLoop - основной цикл, тикер каждую секунду; запускает опрос на секундах кратных 5
 func (c *Client) pollLoop() {
 	defer c.wg.Done()
 	ticker := time.NewTicker(time.Duration(c.cfg.PollEverySec) * time.Second)
@@ -109,7 +109,7 @@ func (c *Client) pollLoop() {
 	}
 }
 
-// performPoll формирует запрос, отправляет и обрабатывает ответ с retry/timeou
+// performPoll формирует запрос, отправляет и обрабатывает ответ с retry/timeout
 func (c *Client) performPoll() {
 	if err := c.ensureConn(); err != nil {
 		c.logger.Printf("cannot connect: %v", err)
@@ -147,7 +147,7 @@ func (c *Client) performPoll() {
 		}
 		c.logger.Printf("RX response: %s", util.HexDump(resp))
 
-		// Проверка контрольной суммы/структуры фрейм
+		// Проверка контрольной суммы/структуры фрейма
 		if err := frame.VerifyFrame(resp); err != nil {
 			lastErr = err
 			c.logger.Printf("frame verification failed: %v", err)
@@ -165,7 +165,7 @@ func (c *Client) performPoll() {
 		timeStr := string(payload[1:])
 		ts, err := time.Parse("2006-01-02 15:04:05", timeStr)
 		if err != nil {
-			// Если парсинг не удаётся — логируем raw строк
+			// Если парсинг не удаётся - логируем raw строку
 			c.logger.Printf("time parse failed, raw='%s'", timeStr)
 			c.logger.Printf("device time (raw): %s", timeStr)
 		} else {
@@ -176,7 +176,7 @@ func (c *Client) performPoll() {
 	c.logger.Printf("all retries failed: last error: %v", lastErr)
 }
 
-// write отправляет байты в текущее соединение (защищено мьютексом
+// write отправляет байты в текущее соединение (защищено мьютексом).
 func (c *Client) write(b []byte) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -187,7 +187,7 @@ func (c *Client) write(b []byte) error {
 	return err
 }
 
-// readFrameWithTimeout читает данные из соединения до образования полного фрейма или таймаут
+// readFrameWithTimeout читает данные из соединения до образования полного фрейма или таймаута
 func (c *Client) readFrameWithTimeout(timeout time.Duration) ([]byte, error) {
 	c.mu.Lock()
 	if c.conn == nil {
@@ -216,7 +216,7 @@ func (c *Client) readFrameWithTimeout(timeout time.Duration) ([]byte, error) {
 	}
 }
 
-// ensureConn убеждается, что есть открытое соединение, иначе пытается reconnec
+// ensureConn убеждается, что есть открытое соединение, иначе пытается reconnect
 func (c *Client) ensureConn() error {
 	c.mu.Lock()
 	if c.conn != nil {
@@ -227,7 +227,7 @@ func (c *Client) ensureConn() error {
 	return c.reconnect()
 }
 
-// reconnect переподключается к серверу (с блокировкой, чтобы не было parallel dial
+// reconnect переподключается к серверу (с блокировкой, чтобы не было parallel dial).
 func (c *Client) reconnect() error {
 	c.dialLog("reconnecting...")
 	c.mu.Lock()
@@ -250,7 +250,7 @@ func (c *Client) reconnect() error {
 	return nil
 }
 
-// dialLog — вспомогательный лог для событий подключени
+// dialLog - вспомогательный лог для событий подключения
 func (c *Client) dialLog(format string, args ...interface{}) {
 	c.logger.Printf("[dial] "+format, args...)
 }

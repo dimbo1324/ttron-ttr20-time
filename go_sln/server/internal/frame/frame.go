@@ -5,8 +5,8 @@ import (
 	"encoding/binary"
 )
 
-// ExtractFrame ищет и извлекает первый полный фрейм из буфер
-// Возвращает копию фрейма и true, если найденный фрейм удалён из буфер
+// ExtractFrame ищет и извлекает первый полный фрейм из буфера
+// Возвращает копию фрейма и true, если найденный фрейм удалён из буфера
 func ExtractFrame(buf *bytes.Buffer) ([]byte, bool) {
 	b := buf.Bytes()
 
@@ -61,8 +61,8 @@ func ExtractFrame(buf *bytes.Buffer) ([]byte, bool) {
 	return nil, false
 }
 
-// PayloadData возвращает DATA (без CONTROL и ADDR) из фрейм
-// Использует LEN (frame[1) для корректного вычисления грани
+// PayloadData возвращает DATA (без CONTROL и ADDR) из фрейма
+// Использует LEN (frame[1) для корректного вычисления границ
 func PayloadData(frame []byte) []byte {
 	if len(frame) < 7 {
 		return nil
@@ -87,7 +87,7 @@ func PayloadData(frame []byte) []byte {
 	return frame[dataStart:payloadEnd]
 }
 
-// BuildSkeleton формирует базовую часть кадра без CRC и 0x1
+// BuildSkeleton формирует базовую часть кадра без CRC и 0x16
 func BuildSkeleton(control byte, addr byte, data []byte) []byte {
 	lenByte := byte(2 + len(data))
 	var b bytes.Buffer
@@ -100,7 +100,7 @@ func BuildSkeleton(control byte, addr byte, data []byte) []byte {
 	return b.Bytes()
 }
 
-// AppendChecksum добавляет CRC/SUM и терминатор 0x1
+// AppendChecksum добавляет CRC/SUM и терминатор 0x16
 func AppendChecksum(frameSoFar []byte, crcMode string) []byte {
 	if crcMode == "crc16" {
 		crc := ComputeCRC16(frameSoFar[3:])
