@@ -2,6 +2,7 @@ package config
 
 import "flag"
 
+// содержит параметры запуска сервера
 type Config struct {
 	Host        string
 	Port        int
@@ -11,10 +12,10 @@ type Config struct {
 	FragProb    float64
 	AdapterAddr int
 	LogFile     string
-	ReadTimeout int // секунды для считывания при подключении
+	ReadTimeout int // секунды для таймаута чтения соединения
 }
 
-// Ф-ия парсит флаги командной строки и возвращает конфигу
+// парсит флаги командной строки и возвращает конфигурацию.
 func Load() *Config {
 	confRes := &Config{}
 

@@ -5,6 +5,8 @@ import (
 	"encoding/binary"
 )
 
+// ExtractFrame ищет и извлекает первый полный фрейм из буфера.
+// Возвращает копию фрейма и true, если найденный фрейм удалён из буфера.
 func ExtractFrame(buf *bytes.Buffer) ([]byte, bool) {
 	b := buf.Bytes()
 
@@ -13,10 +15,12 @@ func ExtractFrame(buf *bytes.Buffer) ([]byte, bool) {
 		return nil, false
 	}
 
+	// Нужны минимум: 0x68, LEN, 0x68
 	if len(b) < start+3 {
 		return nil, false
 	}
 
+	// Проверяем второй 0x68
 	if b[start+2] != 0x68 {
 		buf.Next(start + 1)
 		return nil, false
@@ -31,10 +35,12 @@ func ExtractFrame(buf *bytes.Buffer) ([]byte, bool) {
 	payloadStart := start + 3
 	payloadEnd := payloadStart + lenByte
 
+	// Убедимся, что в буфере есть хотя бы payload + 1 байт checksum + 0x16
 	if len(b) < payloadEnd+2 {
 		return nil, false
 	}
 
+	// Проверка на 1-байтный checksum и окончание 0x16
 	endIdx1 := payloadEnd + 1
 	if endIdx1 < len(b) && b[endIdx1] == 0x16 {
 		frame := make([]byte, endIdx1-start+1)
@@ -43,6 +49,7 @@ func ExtractFrame(buf *bytes.Buffer) ([]byte, bool) {
 		return frame, true
 	}
 
+	// Проверка на 2-байтный checksum и окончание 0x16
 	endIdx2 := payloadEnd + 2
 	if endIdx2 < len(b) && b[endIdx2] == 0x16 {
 		frame := make([]byte, endIdx2-start+1)
@@ -54,6 +61,8 @@ func ExtractFrame(buf *bytes.Buffer) ([]byte, bool) {
 	return nil, false
 }
 
+// PayloadData возвращает DATA (без CONTROL и ADDR) из фрейма.
+// Использует LEN (frame[1) для корректного вычисления границ.
 func PayloadData(frame []byte) []byte {
 	if len(frame) < 7 {
 		return nil
@@ -65,10 +74,12 @@ func PayloadData(frame []byte) []byte {
 	payloadStart := 3
 	payloadEnd := payloadStart + lenByte
 
+	// Должно оставаться минимум checksum + 0x16
 	if payloadEnd > len(frame)-2 {
 		return nil
 	}
 
+	// DATA начинается после CONTROL и ADDR
 	dataStart := payloadStart + 2
 	if dataStart > payloadEnd {
 		return nil
@@ -76,6 +87,7 @@ func PayloadData(frame []byte) []byte {
 	return frame[dataStart:payloadEnd]
 }
 
+// BuildSkeleton формирует базовую часть кадра без CRC и 0x16.
 func BuildSkeleton(control byte, addr byte, data []byte) []byte {
 	lenByte := byte(2 + len(data))
 	var b bytes.Buffer
@@ -88,6 +100,7 @@ func BuildSkeleton(control byte, addr byte, data []byte) []byte {
 	return b.Bytes()
 }
 
+// AppendChecksum добавляет CRC/SUM и терминатор 0x16.
 func AppendChecksum(frameSoFar []byte, crcMode string) []byte {
 	if crcMode == "crc16" {
 		crc := ComputeCRC16(frameSoFar[3:])
